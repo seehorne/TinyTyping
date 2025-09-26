@@ -177,38 +177,131 @@ boolean didMouseClick(float x, float y, float w, float h)
 }
 
 
-void mousePressed()
-{
-  float cellW = sizeOfInputArea/3;
-  float cellH = sizeOfInputArea/3;
+//void mousePressed()
+//{
+//  float cellW = sizeOfInputArea/3;
+//  float cellH = sizeOfInputArea/3;
 
-  // check T9 buttons
-  for (int row=0; row<3; row++) {
-    for (int col=0; col<3; col++) {
-      int idx = row*3 + col;
-      float x = width/2 - sizeOfInputArea/2 + col*cellW;
-      float y = height/2 - sizeOfInputArea/2 + row*cellH;
+//  // check T9 buttons
+//  for (int row=0; row<3; row++) {
+//    for (int col=0; col<3; col++) {
+//      int idx = row*3 + col;
+//      float x = width/2 - sizeOfInputArea/2 + col*cellW;
+//      float y = height/2 - sizeOfInputArea/2 + row*cellH;
 
+//      if (didMouseClick(x, y, cellW, cellH)) {
+//        // cycle inside group and immediately append
+//        groupIndices[idx] = (groupIndices[idx] + 1) % t9Groups[idx].length;
+//        String chosen = t9Groups[idx][ groupIndices[idx] ];
+//        if (chosen.equals("_")) {
+//          currentTyped += " ";   // treat "_" as space
+//        } else {
+//          currentTyped += chosen;
+//        }
+//        lastTapped = idx;
+//        return;
+//      }
+//    }
+//  }
+
+//  // NEXT button
+//  if (didMouseClick(width-200, height-200, 200, 200)) {
+//    nextTrial();
+//  }
+//}
+
+// Track start position of the swipe
+float startX, startY;
+
+// track which cell started
+int startCellIdx = -1; 
+
+void mousePressed() {
+  startX = mouseX;
+  startY = mouseY;
+
+  // Figure out which button the press started in
+  float cellW = sizeOfInputArea / 3;
+  float cellH = sizeOfInputArea / 3;
+  for (int row = 0; row < 3; row++) {
+    for (int col = 0; col < 3; col++) {
+      int idx = row * 3 + col;
+      float x = width / 2 - sizeOfInputArea / 2 + col * cellW;
+      float y = height / 2 - sizeOfInputArea / 2 + row * cellH;
       if (didMouseClick(x, y, cellW, cellH)) {
-        // cycle inside group and immediately append
-        groupIndices[idx] = (groupIndices[idx] + 1) % t9Groups[idx].length;
-        String chosen = t9Groups[idx][ groupIndices[idx] ];
-        if (chosen.equals("_")) {
-          currentTyped += " ";   // treat "_" as space
-        } else {
-          currentTyped += chosen;
-        }
-        lastTapped = idx;
+        startCellIdx = idx; // store the starting button
         return;
       }
     }
   }
 
   // NEXT button
-  if (didMouseClick(width-200, height-200, 200, 200)) {
-    nextTrial();
+  if (didMouseClick(width - 200, height - 200, 200, 200)) {
+    startCellIdx = -2; // special value for NEXT
   }
 }
+
+void mouseReleased() {
+  if (startCellIdx == -1) return; // no button pressed
+
+  if (startCellIdx == -2) { // NEXT button
+    nextTrial();
+    startCellIdx = -1;
+    return;
+  }
+  
+  float dx = mouseX - startX;
+  float dy = mouseY - startY;
+
+  // Threshold to differentiate a swipe from a tap
+  float threshold = 20; // pixels
+  int direction; // 0 = up, 1 = tap/middle, 2 = down
+
+  if (dy < -threshold) direction = 0;
+  else if (dy > threshold) direction = 2;
+  else direction = 1;
+
+  // Use startCellIdx for the correct button
+  if (direction < t9Groups[startCellIdx].length) {
+    String chosen = t9Groups[startCellIdx][direction];
+    if (chosen.equals("_")) chosen = " ";
+    currentTyped += chosen;
+    lastTapped = startCellIdx;
+  }
+
+  startCellIdx = -1; // reset cell selection
+}
+
+//this was to figure out direction which we don't need in the same way anymore
+//void handleT9Input(int direction) {
+//  float cellW = sizeOfInputArea / 3;
+//  float cellH = sizeOfInputArea / 3;
+
+//  // Check T9 buttons
+//  for (int row = 0; row < 3; row++) {
+//    for (int col = 0; col < 3; col++) {
+//      int idx = row * 3 + col;
+//      float x = width / 2 - sizeOfInputArea / 2 + col * cellW;
+//      float y = height / 2 - sizeOfInputArea / 2 + row * cellH;
+
+//      if (didMouseClick(x, y, cellW, cellH)) {
+//        // Map swipe direction to letter
+//        if (direction < t9Groups[idx].length) {
+//          String chosen = t9Groups[idx][direction];
+//          if (chosen.equals("_")) chosen = " "; // treat "_" as space
+//          currentTyped += chosen;
+//          lastTapped = idx;
+//        }
+//        return;
+//      }
+//    }
+//  }
+
+//  // Check NEXT button
+//  if (didMouseClick(width - 200, height - 200, 200, 200)) {
+//    nextTrial();
+//  }
+//}
 
 
 void nextTrial()
