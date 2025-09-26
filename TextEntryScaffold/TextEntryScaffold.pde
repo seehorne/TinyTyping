@@ -14,6 +14,7 @@ float errorsTotal = 0;
 String currentPhrase = "";
 String currentTyped = "";
 final int DPIofYourDeviceScreen = 455;
+float scaleH = 0.9; // Scale down the height input area to display typed string properly
 final float sizeOfInputArea = DPIofYourDeviceScreen*1;
 PImage watch;
 PFont font;
@@ -105,22 +106,41 @@ void draw()
     text("NEXT > ", width-150, height-150);
 
     // ========== typed string display ==========
-    fill(0);
-    textAlign(CENTER, CENTER);
     textFont(font, 36);
-    text("Typed: " + currentTyped, width/2, height/2 - sizeOfInputArea/2 - 60);
-
-    if (lastTapped >= 0) {
-      String preview = t9Groups[lastTapped][ groupIndices[lastTapped] ];
-      if (preview.equals("_")) preview = "␣"; // show space symbol
-      fill(150, 0, 0);
-      text("Current: " + preview, width/2, height/2 - sizeOfInputArea/2 - 20);
+    float maxW = sizeOfInputArea - 110; // limit to width of the input square, minus the length of "typed: "
+    String displayStr = currentTyped;
+    
+    // If too wide, crop from the left and prepend "..."
+    if (textWidth(displayStr) > maxW) {
+      String ellipsis = "...";
+      // Walk backwards until the substring (with "...") fits
+      for (int i = 0; i < displayStr.length(); i++) {
+        String candidate = ellipsis + displayStr.substring(i);
+        if (textWidth(candidate) <= maxW) {
+          displayStr = candidate;
+          break;
+        }
+      }
     }
+
+    
+    // Draw text aligned to left of the square
+    fill(255);
+    textAlign(LEFT, CENTER);
+    text("Typed: " + displayStr, width/2 - sizeOfInputArea/2, height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
+    //text("Typed: " + currentTyped, width/2, height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
+
+    //if (lastTapped >= 0) {
+    //  String preview = t9Groups[lastTapped][ groupIndices[lastTapped] ];
+    //  if (preview.equals("_")) preview = "␣"; // show space symbol
+    //  fill(150, 0, 0);
+    //  text("Current: " + preview, width/2, height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 20);
+    //}
     textFont(font);
 
     // ========== draw 3x3 T9 grid ==========
     float cellW = sizeOfInputArea/3;
-    float cellH = sizeOfInputArea/3;
+    float cellH = sizeOfInputArea/3 * scaleH;
 
     stroke(0);
     strokeWeight(3);
@@ -129,7 +149,7 @@ void draw()
       for (int col=0; col<3; col++) {
         int idx = row*3 + col;
         float x = width/2 - sizeOfInputArea/2 + col*cellW;
-        float y = height/2 - sizeOfInputArea/2 + row*cellH;
+        float y = height/2 - (2*scaleH-1) * sizeOfInputArea/2 + row*cellH; // shifted down for proper text display
 
         fill(240);
         rect(x, y, cellW, cellH);
