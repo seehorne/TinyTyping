@@ -3,7 +3,11 @@ import java.util.Collections;
 import java.util.Random;
 
 import ketai.sensors.*;  // <<< Ketai library
-import android.media.MediaPlayer;
+//import processing.sound.*; //sound library
+import android.media.SoundPool;
+import android.media.AudioAttributes;
+import android.content.res.AssetFileDescriptor;
+import android.media.AudioManager;
 
 String[] phrases;
 int totalTrialNum = 2;
@@ -32,8 +36,6 @@ String[][] t9Groups = {
 int[] groupIndices = new int[9];
 int lastTapped = -1;
 
-MediaPlayer player;
-
 // ====== Ketai orientation sensor ======
 KetaiSensor sensor;
 
@@ -61,6 +63,37 @@ float deleteFlashX = 0;
 float deleteFlashY = 0;
 
 
+// ========== audio ==========
+SoundPool sp;
+int aId = -1;
+int bId = -1;
+int cId = -1;
+int dId = -1;
+int eId = -1;
+int fId = -1;
+int gId = -1;
+int hId = -1;
+int iId = -1;
+int jId = -1;
+int kId = -1;
+int lId = -1;
+int mId = -1;
+int nId = -1;
+int oId = -1;
+int pId = -1;
+int qId = -1;
+int rId = -1;
+int sId = -1;
+int tId = -1;
+int uId = -1;
+int vId = -1;
+int wId = -1;
+int xId = -1;
+int yId = -1;
+int zId = -1;
+int spaceId = -1;
+int deleteId = -1;
+
 void setup()
 {
   watch = loadImage("watchhand3smaller.png");
@@ -74,13 +107,103 @@ void setup()
   noStroke();
 
   // ========== audio ==========
-  
+  //ASound = new SoundFile(this, "a.wav");
+// Old constructor works in Processing's Android mode
+  sp = new SoundPool(4, AudioManager.STREAM_MUSIC, 0);
+
+  try {
+    // getActivity() gives us the Android Context
+    AssetFileDescriptor aafd = getActivity().getAssets().openFd("a.wav");
+    aId = sp.load(aafd, 1);
+    
+    AssetFileDescriptor bafd = getActivity().getAssets().openFd("b.wav");
+    bId = sp.load(bafd, 1);
+    
+    AssetFileDescriptor cafd = getActivity().getAssets().openFd("c.wav");
+    cId = sp.load(cafd, 1);
+    
+    AssetFileDescriptor dafd = getActivity().getAssets().openFd("d.wav");
+    dId = sp.load(dafd, 1);
+    
+    AssetFileDescriptor eafd = getActivity().getAssets().openFd("e.wav");
+    eId = sp.load(eafd, 1);
+    
+    AssetFileDescriptor fafd = getActivity().getAssets().openFd("f.wav");
+    fId = sp.load(fafd, 1);
+    
+    AssetFileDescriptor gafd = getActivity().getAssets().openFd("g.wav");
+    gId = sp.load(gafd, 1);
+    
+    AssetFileDescriptor hafd = getActivity().getAssets().openFd("h.wav");
+    hId = sp.load(hafd, 1);
+    
+    AssetFileDescriptor iafd = getActivity().getAssets().openFd("i.wav");
+    iId = sp.load(iafd, 1);
+    
+    AssetFileDescriptor jafd = getActivity().getAssets().openFd("j.wav");
+    jId = sp.load(jafd, 1);
+    
+    AssetFileDescriptor kafd = getActivity().getAssets().openFd("k.wav");
+    kId = sp.load(kafd, 1);
+    
+    AssetFileDescriptor lafd = getActivity().getAssets().openFd("l.wav");
+    lId = sp.load(lafd, 1);
+    
+    AssetFileDescriptor mafd = getActivity().getAssets().openFd("m.wav");
+    mId = sp.load(mafd, 1);
+    
+    AssetFileDescriptor nafd = getActivity().getAssets().openFd("n.wav");
+    nId = sp.load(nafd, 1);
+    
+    AssetFileDescriptor oafd = getActivity().getAssets().openFd("o.wav");
+    oId = sp.load(oafd, 1);
+    
+    AssetFileDescriptor pafd = getActivity().getAssets().openFd("p.wav");
+    pId = sp.load(pafd, 1);
+    
+    AssetFileDescriptor qafd = getActivity().getAssets().openFd("q.wav");
+    qId = sp.load(qafd, 1);
+    
+    AssetFileDescriptor rafd = getActivity().getAssets().openFd("r.wav");
+    rId = sp.load(rafd, 1);
+    
+    AssetFileDescriptor safd = getActivity().getAssets().openFd("s.wav");
+    sId = sp.load(safd, 1);
+    
+    AssetFileDescriptor tafd = getActivity().getAssets().openFd("t.wav");
+    tId = sp.load(tafd, 1);
+    
+    AssetFileDescriptor uafd = getActivity().getAssets().openFd("u.wav");
+    uId = sp.load(uafd, 1);
+    
+    AssetFileDescriptor vafd = getActivity().getAssets().openFd("v.wav");
+    vId = sp.load(vafd, 1);
+    
+    AssetFileDescriptor wafd = getActivity().getAssets().openFd("w.wav");
+    wId = sp.load(wafd, 1);
+    
+    AssetFileDescriptor xafd = getActivity().getAssets().openFd("x.wav");
+    xId = sp.load(xafd, 1);
+    
+    AssetFileDescriptor yafd = getActivity().getAssets().openFd("y.wav");
+    yId = sp.load(yafd, 1);
+    
+    AssetFileDescriptor zafd = getActivity().getAssets().openFd("z.wav");
+    zId = sp.load(zafd, 1);
+    
+    AssetFileDescriptor spaceafd = getActivity().getAssets().openFd("space.wav");
+    spaceId = sp.load(spaceafd, 1);
+    
+    AssetFileDescriptor deleteafd = getActivity().getAssets().openFd("delete.wav");
+    deleteId = sp.load(deleteafd, 1);
+    
+  } catch (Exception e) {
+    e.printStackTrace();
+  }
 
   // initialize Ketai
   sensor = new KetaiSensor(this);
   sensor.start();
-  
-  
 }
 
 
@@ -260,8 +383,69 @@ void mouseReleased() {
     String chosen = t9Groups[startCellIdx][direction];
     if (chosen.equals("_ ↓")){
       chosen = " ";
+      //parameter explanation:
+      //first: int, soundID, which sound to play
+      //second: int, left volume, volume from left speaker, 1 for max
+      //third: int, right volume, volume from right speaker, 1 for max
+      //fourth: int, priority, 1 to make it not get cut off
+      //fifth: int, how many times to play, 1 to make it play once per key
+      //rate: playback speed, 1= normal, 0.75 slightly slow, 1.25 slightly fast
+      sp.play(spaceId, 1, 1, 1, 0, 1);
     } else {
       chosen = chosen.substring(0, 1); //so we dont get the arrow or dot
+      if (chosen.equals("a")){
+        sp.play(aId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("b")){
+        sp.play(bId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("c")){
+        sp.play(cId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("d")){
+        sp.play(dId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("e")){
+        sp.play(eId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("f")){
+        sp.play(fId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("g")){
+        sp.play(gId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("h")){
+        sp.play(hId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("i")){
+        sp.play(iId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("j")){
+        sp.play(jId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("k")){
+        sp.play(kId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("l")){
+        sp.play(lId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("m")){
+        sp.play(mId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("n")){
+        sp.play(nId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("o")){
+        sp.play(oId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("p")){
+        sp.play(pId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("q")){
+        sp.play(qId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("r")){
+        sp.play(rId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("s")){
+        sp.play(sId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("t")){
+        sp.play(tId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("u")){
+        sp.play(uId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("v")){
+        sp.play(vId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("w")){
+        sp.play(wId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("x")){
+        sp.play(xId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("y")){
+        sp.play(yId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("z")){
+        sp.play(zId, 1, 1, 1, 0, 1);
+      }
     }
     currentTyped += chosen;
     lastTapped = startCellIdx;
@@ -416,7 +600,8 @@ void checkYawDelete() {
       if (currentTyped.length() > 0) {
         currentTyped = currentTyped.substring(0, currentTyped.length()-1);
         println("[DELETE] Triggered. Δyaw=" + degrees(diff));
-
+        //play delete sound
+        sp.play(deleteId, 1, 1, 1, 0, 1);
         // Record flash position at end of typed text
         float maxW = sizeOfInputArea - 110;
         String displayStr = currentTyped;
