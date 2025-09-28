@@ -3,6 +3,7 @@ import java.util.Collections;
 import java.util.Random;
 
 import ketai.sensors.*;  // <<< Ketai library
+import android.media.MediaPlayer;
 
 String[] phrases;
 int totalTrialNum = 2;
@@ -30,6 +31,8 @@ String[][] t9Groups = {
 
 int[] groupIndices = new int[9];
 int lastTapped = -1;
+
+MediaPlayer player;
 
 // ====== Ketai orientation sensor ======
 KetaiSensor sensor;
@@ -70,9 +73,14 @@ void setup()
   textFont(font);
   noStroke();
 
+  // ========== audio ==========
+  
+
   // initialize Ketai
   sensor = new KetaiSensor(this);
   sensor.start();
+  
+  
 }
 
 
@@ -250,7 +258,7 @@ void mouseReleased() {
 
   if (direction < t9Groups[startCellIdx].length) {
     String chosen = t9Groups[startCellIdx][direction];
-    if (chosen.equals("_")){
+    if (chosen.equals("_ ↓")){
       chosen = " ";
     } else {
       chosen = chosen.substring(0, 1); //so we dont get the arrow or dot
