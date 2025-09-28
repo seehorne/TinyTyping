@@ -23,9 +23,9 @@ PFont font;
 
 // ========== QWERTY-T9 groups ==========
 String[][] t9Groups = {
-  {"w","e","r"}, {"t","y","u"}, {"i","o","p"},
-  {"a","s","d"}, {"f","g","h"}, {"j","k","l"},
-  {"z","x","c"}, {"v","b","n"}, {"m","q","_"}
+  {"w ↑","e •","r ↓"}, {"t ↑","y •","u ↓"}, {"i ↑","o •","p ↓"},
+  {"a ↑","s •","d ↓"}, {"f ↑","g •","h ↓"}, {"j ↑","k •","l ↓"},
+  {"z ↑","x •","c ↓"}, {"v ↑","b •","n ↓"}, {"m ↑","q •","_ ↓"}
 };
 
 int[] groupIndices = new int[9];
@@ -250,7 +250,11 @@ void mouseReleased() {
 
   if (direction < t9Groups[startCellIdx].length) {
     String chosen = t9Groups[startCellIdx][direction];
-    if (chosen.equals("_")) chosen = " ";
+    if (chosen.equals("_")){
+      chosen = " ";
+    } else {
+      chosen = chosen.substring(0, 1); //so we dont get the arrow or dot
+    }
     currentTyped += chosen;
     lastTapped = startCellIdx;
   }
