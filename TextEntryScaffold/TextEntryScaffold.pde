@@ -2,6 +2,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
+import ketai.sensors.*;  // <<< Ketai library
+
 String[] phrases;
 int totalTrialNum = 2;
 int currTrialNum = 0;
@@ -14,27 +16,46 @@ float errorsTotal = 0;
 String currentPhrase = "";
 String currentTyped = "";
 final int DPIofYourDeviceScreen = 455;
-float scaleH = 0.9; // Scale down the height input area to display typed string properly
+float scaleH = 0.9;
 final float sizeOfInputArea = DPIofYourDeviceScreen*1;
 PImage watch;
 PFont font;
 
 // ========== QWERTY-T9 groups ==========
 String[][] t9Groups = {
-  {"w","e","r"},     // top left
-  {"t","y","u"},     // top middle
-  {"i","o","p"},     // top right
-  {"a","s","d"},     // middle left
-  {"f","g","h"},     // middle middle
-  {"j","k","l"},     // middle right
-  {"z","x","c"},     // bottom left
-  {"v","b","n"},     // bottom middle
-  {"m","q","_"}      // bottom right (_ for space)
+  {"w ↑","e •","r ↓"}, {"t ↑","y •","u ↓"}, {"i ↑","o •","p ↓"},
+  {"a ↑","s •","d ↓"}, {"f ↑","g •","h ↓"}, {"j ↑","k •","l ↓"},
+  {"z ↑","x •","c ↓"}, {"v ↑","b •","n ↓"}, {"m ↑","q •","_ ↓"}
 };
 
-// state
 int[] groupIndices = new int[9];
 int lastTapped = -1;
+
+// ====== Ketai orientation sensor ======
+KetaiSensor sensor;
+
+float yaw = 0;   // azimuth (z-axis)
+float pitch = 0; // x-axis
+float roll = 0;  // y-axis
+
+float[] g = new float[3];   // gravity (accelerometer)
+float[] m = new float[3];   // geomagnetic (magnetometer)
+boolean hasAccel = false;
+boolean hasMag = false;
+
+// --- yaw-based delete tracking ---
+ArrayList<Float> yawHistory = new ArrayList<Float>();
+ArrayList<Integer> timeHistory = new ArrayList<Integer>();
+float yawThreshold = radians(8); // ~8 degrees
+int windowMillis = 500; // lookback window (0.5s)
+int lastDeleteTime = 0;       // time of last delete
+int deleteBlockWindow = 1000; // ms block all checks after delete
+
+// Delete feedback animation
+int deleteFlashTime = 0;
+int deleteFlashDuration = 300; // ms
+float deleteFlashX = 0;
+float deleteFlashY = 0;
 
 
 void setup()
@@ -48,12 +69,21 @@ void setup()
   font = createFont("NotoSans-Regular.ttf", 14 * displayDensity);
   textFont(font);
   noStroke();
+
+  // initialize Ketai
+  sensor = new KetaiSensor(this);
+  sensor.start();
 }
 
 
 void draw()
 {
   background(255);
+
+  // --- always print live orientation data to console ---
+  println("Yaw:   " + degrees(yaw));
+  println("Pitch: " + degrees(pitch));
+  println("Roll:  " + degrees(roll));
 
   if (finishTime!=0)
   {
@@ -76,7 +106,6 @@ void draw()
 
   drawWatch();
 
-  // big 1" square area background
   fill(100);
   rect(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2, sizeOfInputArea, sizeOfInputArea);
 
@@ -105,15 +134,12 @@ void draw()
     fill(255);
     text("NEXT > ", width-150, height-150);
 
-    // ========== typed string display ==========
+    // typed string display
     textFont(font, 36);
-    float maxW = sizeOfInputArea - 110; // limit to width of the input square, minus the length of "typed: "
+    float maxW = sizeOfInputArea - 110;
     String displayStr = currentTyped;
-    
-    // If too wide, crop from the left and prepend "..."
     if (textWidth(displayStr) > maxW) {
       String ellipsis = "...";
-      // Walk backwards until the substring (with "...") fits
       for (int i = 0; i < displayStr.length(); i++) {
         String candidate = ellipsis + displayStr.substring(i);
         if (textWidth(candidate) <= maxW) {
@@ -123,22 +149,21 @@ void draw()
       }
     }
 
-    
-    // Draw text aligned to left of the square
     fill(255);
     textAlign(LEFT, CENTER);
-    text("Typed: " + displayStr, width/2 - sizeOfInputArea/2, height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
-    //text("Typed: " + currentTyped, width/2, height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
-
-    //if (lastTapped >= 0) {
-    //  String preview = t9Groups[lastTapped][ groupIndices[lastTapped] ];
-    //  if (preview.equals("_")) preview = "␣"; // show space symbol
-    //  fill(150, 0, 0);
-    //  text("Current: " + preview, width/2, height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 20);
-    //}
+    text("Typed: " + displayStr, width/2 - sizeOfInputArea/2,
+         height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
     textFont(font);
 
-    // ========== draw 3x3 T9 grid ==========
+    // --- delete flash effect ---
+    if (millis() - deleteFlashTime < deleteFlashDuration) {
+      float alpha = map(millis() - deleteFlashTime, 0, deleteFlashDuration, 255, 0);
+      fill(255, 0, 0, alpha);
+      noStroke();
+      ellipse(deleteFlashX + 10, deleteFlashY - 10, 30, 30); 
+    }
+
+    // draw T9 grid
     float cellW = sizeOfInputArea/3;
     float cellH = sizeOfInputArea/3 * scaleH;
 
@@ -149,25 +174,26 @@ void draw()
       for (int col=0; col<3; col++) {
         int idx = row*3 + col;
         float x = width/2 - sizeOfInputArea/2 + col*cellW;
-        float y = height/2 - (2*scaleH-1) * sizeOfInputArea/2 + row*cellH; // shifted down for proper text display
+        float y = height/2 - (2*scaleH-1) * sizeOfInputArea/2 + row*cellH;
 
         fill(240);
         rect(x, y, cellW, cellH);
 
-        // vertical letters
         fill(0);
         textAlign(CENTER, CENTER);
         for (int i=0; i<t9Groups[idx].length; i++) {
           float yOffset = y + (i+1) * (cellH / (t9Groups[idx].length+1));
           String label = t9Groups[idx][i];
-          if (label.equals("_")) label = "␣"; // draw space symbol
+          if (label.equals("_")) label = "␣";
           text(label, x + cellW/2, yOffset);
         }
       }
     }
-
     noStroke();
   }
+
+  // --- check yaw for delete trigger ---
+  checkYawDelete();
 }
 
 
@@ -176,51 +202,14 @@ boolean didMouseClick(float x, float y, float w, float h)
   return (mouseX>x && mouseX<x+w && mouseY>y && mouseY<y+h);
 }
 
-
-//void mousePressed()
-//{
-//  float cellW = sizeOfInputArea/3;
-//  float cellH = sizeOfInputArea/3;
-
-//  // check T9 buttons
-//  for (int row=0; row<3; row++) {
-//    for (int col=0; col<3; col++) {
-//      int idx = row*3 + col;
-//      float x = width/2 - sizeOfInputArea/2 + col*cellW;
-//      float y = height/2 - sizeOfInputArea/2 + row*cellH;
-
-//      if (didMouseClick(x, y, cellW, cellH)) {
-//        // cycle inside group and immediately append
-//        groupIndices[idx] = (groupIndices[idx] + 1) % t9Groups[idx].length;
-//        String chosen = t9Groups[idx][ groupIndices[idx] ];
-//        if (chosen.equals("_")) {
-//          currentTyped += " ";   // treat "_" as space
-//        } else {
-//          currentTyped += chosen;
-//        }
-//        lastTapped = idx;
-//        return;
-//      }
-//    }
-//  }
-
-//  // NEXT button
-//  if (didMouseClick(width-200, height-200, 200, 200)) {
-//    nextTrial();
-//  }
-//}
-
-// Track start position of the swipe
+// --- swipe tracking ---
 float startX, startY;
-
-// track which cell started
 int startCellIdx = -1; 
 
 void mousePressed() {
   startX = mouseX;
   startY = mouseY;
 
-  // Figure out which button the press started in
   float cellW = sizeOfInputArea / 3;
   float cellH = sizeOfInputArea / 3;
   for (int row = 0; row < 3; row++) {
@@ -229,22 +218,21 @@ void mousePressed() {
       float x = width / 2 - sizeOfInputArea / 2 + col * cellW;
       float y = height / 2 - sizeOfInputArea / 2 + row * cellH;
       if (didMouseClick(x, y, cellW, cellH)) {
-        startCellIdx = idx; // store the starting button
+        startCellIdx = idx;
         return;
       }
     }
   }
 
-  // NEXT button
   if (didMouseClick(width - 200, height - 200, 200, 200)) {
-    startCellIdx = -2; // special value for NEXT
+    startCellIdx = -2;
   }
 }
 
 void mouseReleased() {
-  if (startCellIdx == -1) return; // no button pressed
+  if (startCellIdx == -1) return;
 
-  if (startCellIdx == -2) { // NEXT button
+  if (startCellIdx == -2) {
     nextTrial();
     startCellIdx = -1;
     return;
@@ -253,55 +241,26 @@ void mouseReleased() {
   float dx = mouseX - startX;
   float dy = mouseY - startY;
 
-  // Threshold to differentiate a swipe from a tap
-  float threshold = 20; // pixels
-  int direction; // 0 = up, 1 = tap/middle, 2 = down
+  float threshold = 20;
+  int direction;
 
   if (dy < -threshold) direction = 0;
   else if (dy > threshold) direction = 2;
   else direction = 1;
 
-  // Use startCellIdx for the correct button
   if (direction < t9Groups[startCellIdx].length) {
     String chosen = t9Groups[startCellIdx][direction];
-    if (chosen.equals("_")) chosen = " ";
+    if (chosen.equals("_")){
+      chosen = " ";
+    } else {
+      chosen = chosen.substring(0, 1); //so we dont get the arrow or dot
+    }
     currentTyped += chosen;
     lastTapped = startCellIdx;
   }
 
-  startCellIdx = -1; // reset cell selection
+  startCellIdx = -1;
 }
-
-//this was to figure out direction which we don't need in the same way anymore
-//void handleT9Input(int direction) {
-//  float cellW = sizeOfInputArea / 3;
-//  float cellH = sizeOfInputArea / 3;
-
-//  // Check T9 buttons
-//  for (int row = 0; row < 3; row++) {
-//    for (int col = 0; col < 3; col++) {
-//      int idx = row * 3 + col;
-//      float x = width / 2 - sizeOfInputArea / 2 + col * cellW;
-//      float y = height / 2 - sizeOfInputArea / 2 + row * cellH;
-
-//      if (didMouseClick(x, y, cellW, cellH)) {
-//        // Map swipe direction to letter
-//        if (direction < t9Groups[idx].length) {
-//          String chosen = t9Groups[idx][direction];
-//          if (chosen.equals("_")) chosen = " "; // treat "_" as space
-//          currentTyped += chosen;
-//          lastTapped = idx;
-//        }
-//        return;
-//      }
-//    }
-//  }
-
-//  // Check NEXT button
-//  if (didMouseClick(width - 200, height - 200, 200, 200)) {
-//    nextTrial();
-//  }
-//}
 
 
 void nextTrial()
@@ -389,4 +348,93 @@ int computeLevenshteinDistance(String phrase1, String phrase2)
       );
 
   return distance[phrase1.length()][phrase2.length()];
+}
+
+void onAccelerometerEvent(float x, float y, float z) {
+  // Low-pass filter for smoother gravity
+  final float alpha = 0.8;
+  g[0] = alpha * g[0] + (1 - alpha) * x;
+  g[1] = alpha * g[1] + (1 - alpha) * y;
+  g[2] = alpha * g[2] + (1 - alpha) * z;
+  hasAccel = true;
+  computeOrientation();
+}
+
+void onMagneticFieldEvent(float x, float y, float z) {
+  m[0] = x;
+  m[1] = y;
+  m[2] = z;
+  hasMag = true;
+  computeOrientation();
+}
+
+// ====== Ketai callback ======
+void computeOrientation() {
+  if (hasAccel && hasMag) {
+    float[] R = new float[9];
+    float[] I = new float[9];
+    if (android.hardware.SensorManager.getRotationMatrix(R, I, g, m)) {
+      float[] orientation = new float[3];
+      android.hardware.SensorManager.getOrientation(R, orientation);
+      yaw   = orientation[0];
+      pitch = orientation[1];
+      roll  = orientation[2];
+    }
+  }
+}
+
+// --- check for yaw-triggered delete ---
+void checkYawDelete() {
+  int now = millis();
+
+  // Skip checking entirely if delete happened recently
+  if (now - lastDeleteTime < deleteBlockWindow) {
+    return;
+  }
+
+  yawHistory.add(yaw);
+  timeHistory.add(now);
+
+  // keep only last windowMillis worth of history
+  while (timeHistory.size() > 0 && now - timeHistory.get(0) > windowMillis) {
+    timeHistory.remove(0);
+    yawHistory.remove(0);
+  }
+
+  if (yawHistory.size() > 1) {
+    float oldestYaw = yawHistory.get(0);
+    float diff = absAngleDiff(yaw, oldestYaw);
+    if (diff > yawThreshold) {
+      if (currentTyped.length() > 0) {
+        currentTyped = currentTyped.substring(0, currentTyped.length()-1);
+        println("[DELETE] Triggered. Δyaw=" + degrees(diff));
+
+        // Record flash position at end of typed text
+        float maxW = sizeOfInputArea - 110;
+        String displayStr = currentTyped;
+        if (textWidth(displayStr) > maxW) {
+          String ellipsis = "...";
+          for (int i = 0; i < displayStr.length(); i++) {
+            String candidate = ellipsis + displayStr.substring(i);
+            if (textWidth(candidate) <= maxW) {
+              displayStr = candidate;
+              break;
+            }
+          }
+        }
+        deleteFlashX = width/2 - sizeOfInputArea/2 + textWidth("Typed: " + displayStr);
+        deleteFlashY = height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28;
+        deleteFlashTime = millis();
+      }
+      lastDeleteTime = now;   // mark time of delete
+    }
+  }
+}
+
+// --- angle difference helper ---
+float absAngleDiff(float a, float b) {
+  float d = a - b;
+  while (d > PI) d -= TWO_PI;
+  while (d < -PI) d += TWO_PI;
+  return abs(d);
 }
