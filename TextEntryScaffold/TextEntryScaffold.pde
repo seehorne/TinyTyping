@@ -3,7 +3,7 @@ import java.util.Collections;
 import java.util.Random;
 
 import ketai.sensors.*;  // <<< Ketai library
-//import processing.sound.*; //sound library
+//import libraries for sound
 import android.media.SoundPool;
 import android.media.AudioAttributes;
 import android.content.res.AssetFileDescriptor;
