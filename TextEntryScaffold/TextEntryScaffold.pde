@@ -51,7 +51,7 @@ boolean hasMag = false;
 // --- yaw-based delete tracking ---
 ArrayList<Float> yawHistory = new ArrayList<Float>();
 ArrayList<Integer> timeHistory = new ArrayList<Integer>();
-float yawThreshold = radians(20); // ~8 degrees
+float yawThreshold = radians(12); // ~8 degrees
 int windowMillis = 500; // lookback window (0.5s)
 int lastDeleteTime = 0;       // time of last delete
 int deleteBlockWindow = 1000; // ms block all checks after delete
