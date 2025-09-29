@@ -27,11 +27,20 @@ PImage watch;
 PFont font;
 
 // ========== QWERTY-T9 groups ==========
-String[][] t9Groups = {
+
+String[][] qwertyGroups = {
   {"W ↑","E •","R ↓"}, {"T ↑","Y •","U ↓"}, {"I ↑","O •","P ↓"},
   {"A ↑","S •","D ↓"}, {"F ↑","G •","H ↓"}, {"J ↑","K •","L ↓"},
   {"Z ↑","X •","C ↓"}, {"V ↑","B •","N ↓"}, {"M ↑","Q •","_ ↓"}
 };
+
+String[][] alphaGroups = {
+  {"A ↑","B •","C ↓"}, {"D ↑","E •","F ↓"}, {"G ↑","H •","I ↓"},
+  {"J ↑","K •","L ↓"}, {"M ↑","N •","O ↓"}, {"P ↑","Q •","R ↓"},
+  {"S ↑","T •","U ↓"}, {"V ↑","W •","X ↓"}, {"Y ↑","Z •","_ ↓"}
+};
+
+String[][] t9Groups= qwertyGroups; //as default, but this can be changed
 
 int[] groupIndices = new int[9];
 int lastTapped = -1;
@@ -96,6 +105,7 @@ int deleteId = -1;
 
 // ========== other setup ==========
 boolean justStarted = true;
+boolean inMenu = true;   // start in menu
 
 void setup()
 {
@@ -242,12 +252,34 @@ void draw()
 
   fill(100);
   rect(width/2-sizeOfInputArea/2, height/2-sizeOfInputArea/2, sizeOfInputArea, sizeOfInputArea);
+  if (inMenu){
+    float boxX = width/2 - sizeOfInputArea/2;
+    float boxY = height/2 - sizeOfInputArea/2;
+    float boxW = sizeOfInputArea;
+    float boxH = sizeOfInputArea;
+
+    fill(240);
+    rect(boxX + boxW*0.1, boxY + boxH*0.2, boxW*0.35, boxH*0.25); // QWERTY
+    rect(boxX + boxW*0.55, boxY + boxH*0.2, boxW*0.35, boxH*0.25); // Alphabet
+
+    fill(0);
+    textAlign(CENTER, CENTER);
+    text("QWERTY",   boxX + boxW*0.275, boxY + boxH*0.325);
+    text("ABC", boxX + boxW*0.725, boxY + boxH*0.325);
+
+    fill(240); //make text white for readability
+    text("Select key layout/order", width/2, boxY + boxH*0.7);
+    fill(0); //turn it back black for the future
+  }
 
   if (startTime==0 && !mousePressed)
   {
     fill(0);
     textAlign(CENTER);
-    text("Click to start time!", 280, 150);
+    if (inMenu){
+      text("Click to choose setup!", 280, 150);
+      text("Trials begin after choice", 280, 220);
+    }
   }
 
   if (startTime==0 && mousePressed)
@@ -341,10 +373,29 @@ float startX, startY;
 int startCellIdx = -1; 
 
 void mousePressed() {
-  if (justStarted){
-    justStarted = false;
-  }
+  if (inMenu) {
+    float boxX = width/2 - sizeOfInputArea/2;
+    float boxY = height/2 - sizeOfInputArea/2;
+    float boxW = sizeOfInputArea;
+    float boxH = sizeOfInputArea;
   
+    // QWERTY button
+    if (didMouseClick(boxX + boxW*0.1, boxY + boxH*0.2, boxW*0.35, boxH*0.25)) {
+      t9Groups = qwertyGroups;
+      inMenu = false;
+      justStarted = false;
+      return;
+    }
+  
+    // Alphabet button
+    if (didMouseClick(boxX + boxW*0.55, boxY + boxH*0.2, boxW*0.35, boxH*0.25)) {
+      t9Groups = alphaGroups;
+      inMenu = false;
+      justStarted = false;
+      return;
+    }
+  }
+   
   startX = mouseX;
   startY = mouseY;
 
