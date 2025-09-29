@@ -94,6 +94,9 @@ int zId = -1;
 int spaceId = -1;
 int deleteId = -1;
 
+// ========== other setup ==========
+boolean justStarted = true;
+
 void setup()
 {
   watch = loadImage("watchhand3smaller.png");
@@ -338,6 +341,10 @@ float startX, startY;
 int startCellIdx = -1; 
 
 void mousePressed() {
+  if (justStarted){
+    justStarted = false;
+  }
+  
   startX = mouseX;
   startY = mouseY;
 
