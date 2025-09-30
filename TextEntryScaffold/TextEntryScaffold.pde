@@ -31,13 +31,13 @@ PFont font;
 String[][] qwertyGroups = {
   {"W ↑","E •","R ↓"}, {"T ↑","Y •","U ↓"}, {"I ↑","O •","P ↓"},
   {"A ↑","S •","D ↓"}, {"F ↑","G •","H ↓"}, {"J ↑","K •","L ↓"},
-  {"Z ↑","X •","C ↓"}, {"V ↑","B •","N ↓"}, {"M ↑","Q •","_ ↓"}
+  {"Z ↑","X •","C ↓"}, {"V ↑","B •","N ↓"}, {"M ↑","_ •","Q ↓"}
 };
 
 String[][] alphaGroups = {
   {"A ↑","B •","C ↓"}, {"D ↑","E •","F ↓"}, {"G ↑","H •","I ↓"},
   {"J ↑","K •","L ↓"}, {"M ↑","N •","O ↓"}, {"P ↑","Q •","R ↓"},
-  {"S ↑","T •","U ↓"}, {"V ↑","W •","X ↓"}, {"Y ↑","Z •","_ ↓"}
+  {"S ↑","T •","U ↓"}, {"V ↑","W •","X ↓"}, {"Y ↑","_ •","Z ↓"}
 };
 
 String[][] t9Groups= qwertyGroups; //as default, but this can be changed
@@ -503,6 +503,8 @@ void mouseReleased() {
         sp.play(yId, 1, 1, 1, 0, 1);
       } else if (chosen.equals("z")){
         sp.play(zId, 1, 1, 1, 0, 1);
+      } else if (chosen.equals("_")){
+        sp.play(spaceId, 1, 1, 1, 0, 1);
       }
     }
     currentTyped += chosen;
