@@ -370,35 +370,18 @@ boolean didMouseClick(float x, float y, float w, float h)
 
 // --- swipe tracking ---
 float startX, startY;
-int startCellIdx = -1; 
+boolean swipeOnly = false;  // true if swipe not tied to a cell
 
 void mousePressed() {
-  if (inMenu) {
-    float boxX = width/2 - sizeOfInputArea/2;
-    float boxY = height/2 - sizeOfInputArea/2;
-    float boxW = sizeOfInputArea;
-    float boxH = sizeOfInputArea;
-  
-    // QWERTY button
-    if (didMouseClick(boxX + boxW*0.1, boxY + boxH*0.2, boxW*0.35, boxH*0.25)) {
-      t9Groups = qwertyGroups;
-      inMenu = false;
-      justStarted = false;
-      return;
-    }
-  
-    // Alphabet button
-    if (didMouseClick(boxX + boxW*0.55, boxY + boxH*0.2, boxW*0.35, boxH*0.25)) {
-      t9Groups = alphaGroups;
-      inMenu = false;
-      justStarted = false;
-      return;
-    }
-  }
-   
   startX = mouseX;
   startY = mouseY;
+  swipeOnly = true;   // assume global swipe unless we detect cell press
 
+  if (inMenu) {
+    // (keep your existing inMenu logic)
+  }
+
+  // check if tapped inside T9 cells
   float cellW = sizeOfInputArea / 3;
   float cellH = sizeOfInputArea / 3;
   for (int row = 0; row < 3; row++) {
@@ -408,17 +391,41 @@ void mousePressed() {
       float y = height / 2 - sizeOfInputArea / 2 + row * cellH;
       if (didMouseClick(x, y, cellW, cellH)) {
         startCellIdx = idx;
+        swipeOnly = false;
         return;
       }
     }
   }
 
+  // NEXT button
   if (didMouseClick(width - 200, height - 200, 200, 200)) {
     startCellIdx = -2;
+    swipeOnly = false;
   }
 }
 
 void mouseReleased() {
+  float dx = mouseX - startX;
+  float dy = mouseY - startY;
+
+  // ==== global swipe detection ====
+  if (swipeOnly) {
+    float threshold = 50; // minimum px to count as swipe
+    if (abs(dx) > abs(dy) && dx < -threshold) {
+      // left swipe -> DELETE
+      if (currentTyped.length() > 0) {
+        currentTyped = currentTyped.substring(0, currentTyped.length()-1);
+        sp.play(deleteId, 1, 1, 1, 0, 1);
+        println("[DELETE] Swipe left triggered.");
+        deleteFlashX = width/2 - sizeOfInputArea/2 + textWidth("Typed: " + currentTyped);
+        deleteFlashY = height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28;
+        deleteFlashTime = millis();
+      }
+    }
+    return; // don’t fall through into cell logic
+  }
+
+  // ==== existing T9 tap logic ====
   if (startCellIdx == -1) return;
 
   if (startCellIdx == -2) {
@@ -426,93 +433,23 @@ void mouseReleased() {
     startCellIdx = -1;
     return;
   }
-  
-  float dx = mouseX - startX;
-  float dy = mouseY - startY;
 
   float threshold = 20;
   int direction;
-
   if (dy < -threshold) direction = 0;
   else if (dy > threshold) direction = 2;
   else direction = 1;
 
   if (direction < t9Groups[startCellIdx].length) {
     String chosen = t9Groups[startCellIdx][direction];
-    if (chosen.equals("_ ↓")){
-      chosen = " ";
-      //parameter explanation:
-      //first: int, soundID, which sound to play
-      //second: int, left volume, volume from left speaker, 1 for max
-      //third: int, right volume, volume from right speaker, 1 for max
-      //fourth: int, priority, 1 to make it not get cut off
-      //fifth: int, how many times to play, 1 to make it play once per key
-      //rate: playback speed, 1= normal, 0.75 slightly slow, 1.25 slightly fast
-      sp.play(spaceId, 1, 1, 1, 0, 1);
-    } else {
-      chosen = chosen.substring(0, 1).toLowerCase(); //so we dont get the arrow or dot
-      if (chosen.equals("a")){
-        sp.play(aId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("b")){
-        sp.play(bId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("c")){
-        sp.play(cId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("d")){
-        sp.play(dId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("e")){
-        sp.play(eId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("f")){
-        sp.play(fId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("g")){
-        sp.play(gId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("h")){
-        sp.play(hId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("i")){
-        sp.play(iId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("j")){
-        sp.play(jId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("k")){
-        sp.play(kId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("l")){
-        sp.play(lId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("m")){
-        sp.play(mId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("n")){
-        sp.play(nId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("o")){
-        sp.play(oId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("p")){
-        sp.play(pId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("q")){
-        sp.play(qId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("r")){
-        sp.play(rId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("s")){
-        sp.play(sId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("t")){
-        sp.play(tId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("u")){
-        sp.play(uId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("v")){
-        sp.play(vId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("w")){
-        sp.play(wId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("x")){
-        sp.play(xId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("y")){
-        sp.play(yId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("z")){
-        sp.play(zId, 1, 1, 1, 0, 1);
-      } else if (chosen.equals("_")){
-        sp.play(spaceId, 1, 1, 1, 0, 1);
-      }
-    }
-    currentTyped += chosen;
+    // (keep your existing character selection + sound logic here)
+    currentTyped += chosen.substring(0,1).toLowerCase();
     lastTapped = startCellIdx;
   }
 
   startCellIdx = -1;
 }
+
 
 
 void nextTrial()
