@@ -37,9 +37,9 @@ String[][] qwertyGroups = {
 String[] directionIndicators = {"←", "•", "→"};
 
 String[][] alphaGroups = {
-  {"A ↑","B •","C ↓"}, {"D ↑","E •","F ↓"}, {"G ↑","H •","I ↓"},
-  {"J ↑","K •","L ↓"}, {"M ↑","N •","O ↓"}, {"P ↑","Q •","R ↓"},
-  {"S ↑","T •","U ↓"}, {"V ↑","W •","X ↓"}, {"Y ↑","_ •","Z ↓"}
+  {"A","B","C"}, {"D","E","F"}, {"G","H","I"},
+  {"J","K","L"}, {"M","N","O"}, {"P","Q","R"},
+  {"S","T","U"}, {"V","W","X"}, {"Y","_","Z"}
 };
 
 String[][] t9Groups= qwertyGroups; //as default, but this can be changed
@@ -442,6 +442,7 @@ void mouseReleased() {
       deleteFlashTime = millis();
     }
     startCellIdx = -1;
+    feedforwardChar = "";
     return;
   }
 
