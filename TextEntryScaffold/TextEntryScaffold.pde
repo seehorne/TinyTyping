@@ -29,10 +29,12 @@ String feedforwardChar = "";
 
 // ========== QWERTY-T9 groups ==========
 String[][] qwertyGroups = {
-  {"W ↑","E •","R ↓"}, {"T ↑","Y •","U ↓"}, {"I ↑","O •","P ↓"},
-  {"A ↑","S •","D ↓"}, {"F ↑","G •","H ↓"}, {"J ↑","K •","L ↓"},
-  {"Z ↑","X •","C ↓"}, {"V ↑","B •","N ↓"}, {"M ↑","_ •","Q ↓"}
+  {"W","E","R"}, {"T","Y","U"}, {"I","O","P"},
+  {"A","S","D"}, {"F","G","H"}, {"J","K","L"},
+  {"Z","X","C"}, {"V","B","N"}, {"M","_","Q"}
 };
+
+String[] directionIndicators = {"←", "•", "→"};
 
 String[][] alphaGroups = {
   {"A ↑","B •","C ↓"}, {"D ↑","E •","F ↓"}, {"G ↑","H •","I ↓"},
@@ -300,10 +302,11 @@ void draw()
         fill(0);
         textAlign(CENTER, CENTER);
         for (int i=0; i<t9Groups[idx].length; i++) {
-          float yOffset = y + (i+1) * (cellH / (t9Groups[idx].length+1));
+          float xOffset = x + (i+1) * (cellW / (t9Groups[idx].length+1));
           String label = t9Groups[idx][i];
           if (label.equals("_")) label = "␣";
-          text(label, x + cellW/2, yOffset);
+          text(label, xOffset, y + cellH/2);
+          text(directionIndicators[i], xOffset, y + cellH/2 + 30);
         }
       }
     }
@@ -382,11 +385,16 @@ void mouseDragged() {
 
   // up/down/neutral swipes = normal typing
   float threshold = 40;
-  //float dx = mouseX - startX;
+  float dx = mouseX - startX;
   float dy = mouseY - startY;
+  if (dy < -2*threshold || dy > 2*threshold)
+  {
+    feedforwardChar = "⌫";
+    return;
+  }
   int direction;
-  if (dy < -threshold) direction = 0;
-  else if (dy > threshold) direction = 2;
+  if (dx < -threshold) direction = 0;
+  else if (dx > threshold) direction = 2;
   else direction = 1;
 
   if (direction < t9Groups[startCellIdx].length) {
@@ -410,7 +418,7 @@ void mouseReleased() {
   int direction;
 
   // detect swipe left = DELETE
-  if (dx < -threshold) {
+  if (dy < -2*threshold || dy > 2*threshold) {
     if (currentTyped.length() > 0) {
       currentTyped = currentTyped.substring(0, currentTyped.length()-1);
       println("[DELETE] Swipe left detected");
@@ -438,8 +446,8 @@ void mouseReleased() {
   }
 
   // up/down/neutral swipes = normal typing
-  if (dy < -threshold) direction = 0;
-  else if (dy > threshold) direction = 2;
+  if (dx < -threshold) direction = 0;
+  else if (dx > threshold) direction = 2;
   else direction = 1;
 
   if (direction < t9Groups[startCellIdx].length) {
