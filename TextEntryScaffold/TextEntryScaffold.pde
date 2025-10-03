@@ -25,6 +25,7 @@ float scaleH = 0.9;
 final float sizeOfInputArea = DPIofYourDeviceScreen*1;
 PImage watch;
 PFont font;
+String feedforwardChar = "";
 
 // ========== QWERTY-T9 groups ==========
 String[][] qwertyGroups = {
@@ -238,7 +239,7 @@ void draw()
 
     // typed string display
     textFont(font, 36);
-    float maxW = sizeOfInputArea - 110;
+    float maxW = sizeOfInputArea - 150;
     String displayStr = currentTyped;
     if (textWidth(displayStr) > maxW) {
       String ellipsis = "...";
@@ -256,6 +257,13 @@ void draw()
     text("Typed: " + displayStr, width/2 - sizeOfInputArea/2,
          height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
     textFont(font);
+    
+    
+    // type feedforward character
+    fill(255, 203, 5);
+    textAlign(RIGHT, CENTER);
+    text(feedforwardChar, width/2 + sizeOfInputArea/2 - 5,
+         height/2 - (2*scaleH-1)*sizeOfInputArea/2 - 28);
 
     // --- delete flash effect ---
     if (millis() - deleteFlashTime < deleteFlashDuration) {
@@ -278,7 +286,15 @@ void draw()
         float x = width/2 - sizeOfInputArea/2 + col*cellW;
         float y = height/2 - (2*scaleH-1) * sizeOfInputArea/2 + row*cellH;
 
-        fill(240);
+        if (startCellIdx == idx)
+        {
+          // Highlight the cell
+          fill(255, 203, 5);
+        }
+        else
+        {
+          fill(240);
+        }
         rect(x, y, cellW, cellH);
 
         fill(0);
@@ -305,7 +321,8 @@ float startX, startY;
 int startCellIdx = -1; 
 
 void mousePressed() {
-  if (inMenu) {
+  if (inMenu)
+  {
     float boxX = width/2 - sizeOfInputArea/2;
     float boxY = height/2 - sizeOfInputArea/2;
     float boxW = sizeOfInputArea;
@@ -327,26 +344,53 @@ void mousePressed() {
       return;
     }
   }
-   
-  startX = mouseX;
-  startY = mouseY;
-
-  float cellW = sizeOfInputArea / 3;
-  float cellH = sizeOfInputArea / 3;
-  for (int row = 0; row < 3; row++) {
-    for (int col = 0; col < 3; col++) {
-      int idx = row * 3 + col;
-      float x = width / 2 - sizeOfInputArea / 2 + col * cellW;
-      float y = height / 2 - sizeOfInputArea / 2 + row * cellH;
-      if (didMouseClick(x, y, cellW, cellH)) {
-        startCellIdx = idx;
-        return;
+  else
+  {
+    startX = mouseX;
+    startY = mouseY;
+  
+    float cellW = sizeOfInputArea / 3;
+    float cellH = sizeOfInputArea * scaleH / 3;
+    for (int row = 0; row < 3; row++) {
+      for (int col = 0; col < 3; col++) {
+        int idx = row * 3 + col;
+        float x = width / 2 - sizeOfInputArea / 2 + col * cellW;
+        float y = height / 2 - (2*scaleH-1) * sizeOfInputArea/2 + row * cellH;
+          
+        if (didMouseClick(x, y, cellW, cellH)) {
+          startCellIdx = idx;        
+          return;
+        }
       }
     }
+  
+    if (didMouseClick(width - 200, height - 200, 200, 200)) {
+      startCellIdx = -2;
+    }
+  }
+}
+
+// Feedforward of what key to be pressed
+void mouseDragged() {
+  if (startCellIdx == -1) return;
+
+  if (startCellIdx == -2) {
+    nextTrial();
+    startCellIdx = -1;
+    return;
   }
 
-  if (didMouseClick(width - 200, height - 200, 200, 200)) {
-    startCellIdx = -2;
+  // up/down/neutral swipes = normal typing
+  float threshold = 40;
+  //float dx = mouseX - startX;
+  float dy = mouseY - startY;
+  int direction;
+  if (dy < -threshold) direction = 0;
+  else if (dy > threshold) direction = 2;
+  else direction = 1;
+
+  if (direction < t9Groups[startCellIdx].length) {
+    feedforwardChar = t9Groups[startCellIdx][direction].substring(0,1);
   }
 }
 
@@ -410,7 +454,7 @@ void mouseReleased() {
     currentTyped += chosen;
     lastTapped = startCellIdx;
   }
-
+  feedforwardChar = "";
   startCellIdx = -1;
 }
 
