@@ -452,7 +452,7 @@ void mouseReleased() {
 
   if (direction < t9Groups[startCellIdx].length) {
     String chosen = t9Groups[startCellIdx][direction];
-    if (chosen.equals("_ •")){
+    if (chosen.equals("_")){
       chosen = " ";
       sp.play(spaceId, 1, 1, 1, 0, 1);
     } else {
